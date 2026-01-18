@@ -86,3 +86,17 @@ def predict_cli(metar):
 metar = {'tmpf': 25, 'sknt': 10}  # No METAR API
 cli_pred = predict_cli(metar)
 msg = f"CLI Prognoze: {cli_pred:.1f}°F"
+def download_era5():
+    import cdsapi
+    c = cdsapi.Client()
+    c.retrieve('reanalysis-era5-single-levels', {
+        'product_type': 'reanalysis',
+        'variable': '2m_temperature',
+        'year': '2025/01',
+        'month': '01',
+        'day': ['01'],
+        'time': ['12:00'],
+        'area': [41.785, -87.752, 41.785, -87.752],
+        'format': 'netcdf'
+    }, 'era5_test.nc')
+    logging.info("ERA5 downloaded!")
