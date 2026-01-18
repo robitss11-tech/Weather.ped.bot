@@ -54,3 +54,32 @@ if __name__ == "__main__":
     server = uvicorn.Server(config)
     asyncio.run(server.serve())
     # Bot loop paralēli (vai threading)
+import requests
+import pandas as pd
+from io import StringIO
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
+import joblib
+model = None
+
+def fetch_kmdw_data():
+    url = "https://mesonet.agron.iastate.edu/request/asos/1min.phtml?station=KMDW"
+    df = pd.read_csv(url)
+    return df
+
+def train_model():
+    global model
+    df = fetch_kmdw_data()
+    df['CLI_proxy'] = df['tmpf'].rolling(24).max()
+    X = df[['tmpf', 'sknt']].dropna()
+    y = df['CLI_proxy'].shift(-1).dropna()
+    model = RandomForestRegressor()
+    model.fit(X.iloc[:-100], y.iloc[:-100])
+    joblib.dump(model, 'model.pkl')
+
+def predict_cli(metar):
+    global model
+    if model is None:
+        model = joblib.load('model.pkl')
+    pred = model.predict([[metar['tmpf'], metar['sknt']]])[0]
+    return pred
