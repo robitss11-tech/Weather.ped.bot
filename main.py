@@ -100,3 +100,24 @@ def download_era5():
         'format': 'netcdf'
     }, 'era5_test.nc')
     logging.info("ERA5 downloaded!")
+def predict_outcome(ticker):
+    if 'chi' in ticker:
+        return predict_cli({'tmpf':25, 'sknt':10}) > 20  # CLI model
+    # NYC, hurricanes utt.
+    return 0.6  # Baseline
+
+def kelly_size(p, b):
+    f = (p * b - 1) / (b - 1)
+    return max(0, min(10, f * 100))  # Contracts
+# Scan climate markets
+markets = client.list_markets({'category': 'climate', 'status': 'open'})
+for market in markets:
+    ticker = market['ticker']
+    if 'temperature' in ticker or 'rain' in ticker or 'hurricane' in ticker:
+        yes_price = market['yes_bid']
+        pred_prob = predict_outcome(ticker)  # Jūsu ML
+        ev = pred_prob * yes_price - 1
+        if ev > 0.05:  # 5% edge
+            size = kelly_size(pred_prob, yes_price)  # 1-10%
+            client.buy(ticker, size, 'yes')
+            logging.info(f"Buy {ticker} {size} EV:{ev:.2%}")
