@@ -61,22 +61,22 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 import joblib
 model = None
-
 def fetch_kmdw_data():
     url = "https://mesonet.agron.iastate.edu/request/asos/1min.phtml?station=KMDW"
     df = pd.read_csv(url)
     return df
-
 def train_model():
     global model
     df = fetch_kmdw_data()
-    df['CLI_proxy'] = df['tmpf'].rolling(24).max()
-    X = df[['tmpf', 'sknt']].dropna()
-    y = df['CLI_proxy'].shift(-1).dropna()
-    model = RandomForestRegressor()
-    model.fit(X.iloc[:-100], y.iloc[:-100])
+    df['CLI_proxy'] = df['tmpf'].rolling(24).max().shift(-1)
+    df = df.dropna()
+    X = df[['tmpf', 'sknt']]
+    y = df['CLI_proxy']
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+    model = RandomForestRegressor(n_estimators=100)
+    model.fit(X_train, y_train)
     joblib.dump(model, 'model.pkl')
-
+    logging.info(f"Model accuracy: {model.score(X_test, y_test):.2f}")
 def predict_cli(metar):
     global model
     if model is None:
