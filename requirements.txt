@@ -3,3 +3,4 @@ python-telegram-bot==20.7
 requests==2.31.0
 pandas==2.2.3
 numpy==1.26.4
+cryptography==43.0.1
