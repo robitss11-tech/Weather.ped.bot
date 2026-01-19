@@ -131,14 +131,21 @@ async def fetch_metar(icao):
 
 
 def get_cli(icao):
-    """CLI no Iowa State ASOS (adapt per station network)"""
-    # Piemērs KMDW/IL_ASOS; citiem pielāgo network
+    """CLI no Iowa State ASOS per stacija"""
     networks = {
         'KMDW': ('IL_ASOS', 'MDW'),
         'KJFK': ('NY_ASOS', 'JFK'),
+        'KNYC': ('NY_ASOS', 'NYC'),
         'KMIA': ('FL_ASOS', 'MIA'),
-        # ... pielāgo citiem
-    }
+        'KAUS': ('TX_ASOS', 'AUS'),
+        'KDEN': ('CO_ASOS', 'DEN'),
+        'KHOU': ('TX_ASOS', 'HOU'),
+        'KPHL': ('PA_ASOS', 'PHL'),
+        'KLAX': ('CA_ASOS', 'LAX'),
+        'KBOS': ('MA_ASOS', 'BOS'),
+    }[web:39]
+    # ... pārējais paliek nemainīgs
+
     net, st = networks.get(icao, ('US_ASOS', icao[:3]))
     url = (
         f"https://mesonet.agron.iastate.edu/request/download.phtml?"
@@ -244,11 +251,15 @@ if ELITE_MODE:
         try:
             od_client = OpendataClient(source="ecmwf")
             od_client.retrieve(param="2t", step=[24], target="graphcast.grib2")
-            logger.info(f"GraphCast retrieved for {lat},{lon}!")
-            return 52.3  # TODO: parse ar cfgrib
+            import cfgrib  # dynamic import
+            ds = cfgrib.open_dataset('graphcast.grib2')
+            max_temp = float(ds.t2m.sel(latitude=lat, longitude=lon, method='nearest').max())
+            logger.info(f"GraphCast max T {lat},{lon}: {max_temp:.1f}°F")
+            return max_temp
         except Exception as e:
-            logger.error(f"GraphCast error: {e}")
-            return 50.0
+            logger.error(f"GraphCast parse error: {e}")
+            return 52.3  # fallback
+
 else:
     def fetch_graphcast(lat, lon):
         return 50.0
